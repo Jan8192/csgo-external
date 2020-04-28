@@ -103,11 +103,38 @@ void glow() {
 	if (!vars.glow.isEnabled)
 		return;
 
-	for (int i = 0; i < 64; i++) {
+	auto localPlayer = getLocalPlayer();
+	auto team = read<int>(client + hazedumper::netvars::m_iTeamNum);
+
+	auto glowObject = read<DWORD>(client + hazedumper::signatures::dwGlowObjectManager);
+
+	for (int i = 1; i < 64; i++) {
 		auto entity = getEntityFromIndex(i);
 
-		if (entity)
-			write<float>(entity + 0x3964, 4500);
+		if (entity != NULL) {
+			auto entityTeam = read<int>(entity + hazedumper::netvars::m_iTeamNum);
+			auto glowIndex = read<int>(entity + hazedumper::netvars::m_iGlowIndex);
+
+			if (team == entityTeam) {
+				write<float>(glowObject + ((glowIndex * 0x38) + 0x4), 0);
+				write<float>(glowObject + ((glowIndex * 0x38) + 0x8), 0);
+				write<float>(glowObject + ((glowIndex * 0x38) + 0xC), 2);
+				write<float>(glowObject + ((glowIndex * 0x38) + 0x10), 0.5);
+			}
+			else
+			{
+				write<float>(glowObject + ((glowIndex * 0x38) + 0x4), 2);
+				write<float>(glowObject + ((glowIndex * 0x38) + 0x8), 0);
+				write<float>(glowObject + ((glowIndex * 0x38) + 0xC), 0);
+				write<float>(glowObject + ((glowIndex * 0x38) + 0x10), 0.5);
+			}
+
+			write<bool>(glowObject + ((glowIndex * 0x38) + 0x24), true);
+			write<bool>(glowObject + ((glowIndex * 0x38) + 0x25), false);
+		}
+
+		/*if (entity)
+			write<float>(entity + 0x3964, 4500);*/
 	}
 }
 
@@ -134,9 +161,18 @@ int main()
 		engine = getModule("engine.dll");
 
 		std::cout << "client: " << client << "\n";
-		std::cout << "engine: " << engine << "\n";
+		std::cout << "engine: " << engine << "\n\n";
+		std::cout << "glow(f12)" << "\n";
 
 		for (;;) {
+			if (GetAsyncKeyState(VK_F3) && !vars.glow.isEnabled) {
+				vars.glow.isEnabled = true;
+			}
+
+			if (GetAsyncKeyState(VK_F3) && vars.glow.isEnabled) {
+				vars.glow.isEnabled = false;
+			}
+
 			glow();
 			bhop();
 
